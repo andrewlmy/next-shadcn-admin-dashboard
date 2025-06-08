@@ -24,6 +24,7 @@ export interface NavSubItem {
   url: string;
   icon?: LucideIcon;
   comingSoon?: boolean;
+  newTab?: boolean;
 }
 
 export interface NavMainItem {
@@ -32,6 +33,7 @@ export interface NavMainItem {
   icon?: LucideIcon;
   subItems?: NavSubItem[];
   comingSoon?: boolean;
+  newTab?: boolean;
 }
 
 export interface NavGroup {
@@ -64,6 +66,15 @@ export const sidebarItems: NavGroup[] = [
     id: 2,
     label: "Pages",
     items: [
+      {
+        title: "Authentication",
+        url: "/auth",
+        icon: Fingerprint,
+        subItems: [
+          { title: "Login v1", url: "/auth/v1/login", newTab: true },
+          { title: "Register v1", url: "/auth/v1/register", newTab: true },
+        ],
+      },
       {
         title: "Email",
         url: "/mail",
@@ -104,12 +115,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Roles",
         url: "/roles",
         icon: Lock,
-        comingSoon: true,
-      },
-      {
-        title: "Auth Screens",
-        url: "/auth",
-        icon: Fingerprint,
         comingSoon: true,
       },
     ],
