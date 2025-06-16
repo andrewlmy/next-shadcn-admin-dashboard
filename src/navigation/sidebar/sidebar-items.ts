@@ -1,4 +1,7 @@
 import {
+  Home,
+  ChartPie,
+  ChartLine,
   ShoppingBag,
   Forklift,
   Mail,
@@ -10,12 +13,9 @@ import {
   Lock,
   Fingerprint,
   SquareArrowUpRight,
-  LayoutDashboard,
-  ChartBar,
-  Banknote,
-  Gauge,
-  GraduationCap,
+  Server,
   type LucideIcon,
+
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -49,43 +49,17 @@ export const sidebarItems: NavGroup[] = [
     label: "Dashboards",
     items: [
       {
-        title: "Default",
-        url: "/dashboard/default",
-        icon: LayoutDashboard,
-      },
-      {
-        title: "CRM",
-        url: "/dashboard/crm",
-        icon: ChartBar,
-      },
-      {
-        title: "Finance",
-        url: "/dashboard/finance",
-        icon: Banknote,
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/coming-soon",
-        icon: Gauge,
-        comingSoon: true,
-      },
-      {
-        title: "E-commerce",
-        url: "/dashboard/coming-soon",
-        icon: ShoppingBag,
-        comingSoon: true,
-      },
-      {
-        title: "Academy",
-        url: "/dashboard/coming-soon",
-        icon: GraduationCap,
-        comingSoon: true,
-      },
-      {
-        title: "Logistics",
-        url: "/dashboard/coming-soon",
-        icon: Forklift,
-        comingSoon: true,
+        title: "Dashboards",
+        url: "/dashboard",
+        icon: Home,
+        subItems: [
+          { title: "Default", url: `/dashboard/default`, icon: ChartPie },
+          { title: "Hosts", url: `/dashboard/hosts`, icon: Server },
+          { title: "Analytics", url: `/dashboard/analytics`, icon: ChartLine, comingSoon: true },
+          { title: "eCommerce", url: `/dashboard/e-commerce`, icon: ShoppingBag, comingSoon: true },
+          { title: "Academy", url: `/dashboard/academy`, icon: BookA, comingSoon: true },
+          { title: "Logistics", url: `/dashboard/logistics`, icon: Forklift, comingSoon: true },
+        ],
       },
     ],
   },
