@@ -1,7 +1,7 @@
 import packageJson from "../../package.json";
 
 export const APP_CONFIG = {
-  name: "Studio Admin",
+  name: "AdsInfras Admin",
   version: packageJson.version,
   meta: {
     title: "Studio Admin - Modern Next.js Dashboard Starter Template",
