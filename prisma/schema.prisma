@@ -1,0 +1,66 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Host {
+  id                   Int      @id @default(autoincrement()) @map("id")
+  sn                   String?  @map("sn")
+  ipv4                 String   @map("ipv4") @db.VarChar(20)
+  ipv4Public           String?  @map("ipv4_public") @db.VarChar(20)
+  ipv6                 String?  @map("ipv6") @db.VarChar(255)
+  cpuCore              Int?     @map("cpu_core")
+  memoryTotalSize      Int?     @map("memory_total_size")
+  localDiskSize        Int?     @map("local_disk_size")
+  dateCreate           DateTime @map("date_create") @db.Date
+  dateLastUpdate       DateTime @map("date_last_update") @db.Date
+  locationId           Int      @map("location_id")
+  dataCenterId         Int      @map("data_center_id")
+  dataRegionId         Int?     @map("data_region_id")
+  extranetOperatorId   Int?     @map("extranet_operator_id")
+  remarks              String?  @map("remarks") @db.Text
+  status               Int      @map("status")
+  deleteFlag           Boolean  @map("delete_flag") @default(false) @db.TinyInt
+  projectId            Int      @map("project_id") @default(1)
+  dateRegister         DateTime? @map("date_register") @db.Date
+  dateExpire           DateTime? @map("date_expire") @db.Date
+  networkCardInner     String?  @map("network_card_inner") @db.VarChar(20)
+  osId                 Int?     @map("os_id")
+  tiangongStatusId     Int?     @map("tiangong_status_id")
+
+  // 明确指定表名
+  @@map("manage_host")
+  
+  // 定义索引
+  @@index([locationId, dataCenterId], map: "location")
+  @@index([ipv4, ipv4Public, id], map: "ip_index")
+}
+
+
+
+model Service {
+  id                           Int      @id @default(autoincrement()) @map("id")
+  name                         String   @map("name") @db.VarChar(200)
+  disable                      Boolean  @map("disable") @db.TinyInt
+  dateCreate                   DateTime @map("date_create")
+  dateLastUpdate               DateTime @map("date_last_update")
+  projectId                    Int      @map("project_id")
+  port                         String   @map("port") @default("7102") @db.VarChar(100)
+  enablePressureTest           Boolean  @map("enable_pressure_test") @default(true) @db.TinyInt
+  dockerLabelId                Int?     @map("docker_label_id")
+  enableContrastTest           Int      @map("enable_contrast_test") @default(0)
+  contrastTestDefaultIp        String?  @map("contrast_test_default_ip") @db.VarChar(255)
+  contrastTestDefaultTestIp     String?  @map("contrast_test_default_test_ip") @db.VarChar(255)
+  contrastTestDefaultDockerName String?  @map("contrast_test_default_docker_name") @db.VarChar(255)
+  contrastTestDefaultLogFolder  String?  @map("contrast_test_default_log_folder") @db.VarChar(255)
+  contrastTestDefaultResultPort String?  @map("contrast_test_default_result_port") @db.VarChar(255)
+
+  @@map("manage_service")
+  @@index([projectId], map: "project_index")
+  @@index([disable], map: "status_index")
+}
+

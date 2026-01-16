@@ -85,23 +85,23 @@ export const schema = z.object({
   sn: z.string(),
   ip: z.string(),
   publicIp: z.string(),
-  idc: z.string(),
-  location: z.string(),
-  status: z.string(),
-  os: z.string(),
-  cpu: z.string(),
-  cpuCores: z.number(),
+  // idc: z.string(),
+  // location: z.string(),
+  // status: z.string(),
+  // os: z.string(),
+  // cpu: z.string(),
+  cpuCore: z.number(),
   memory: z.number(),
-  diskType: z.string(),
+  // diskType: z.string(),
   diskVolume: z.number(),
-  tags: z.array(z.string()),
-  description: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  // tags: z.array(z.string()),
+  // description: z.string(),
+  // createdAt: z.string(),
+  // updatedAt: z.string(),
 
-  owner: z.string(),
-  contract : z.string(),
-  k8sCluster: z.string(),
+  // owner: z.string(),
+  // contract : z.string(),
+  // k8sCluster: z.string(),
 
 
 });
@@ -208,48 +208,48 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       </Badge>
     ),
   },
-  {
-    accessorKey: "idc",
-    header: "idc",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.idc}
-      </Badge>
-    ),
-  },
+  // {
+  //   accessorKey: "idc",
+  //   header: "idc",
+  //   cell: ({ row }) => (
+  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //       {row.original.status === "Done" ? (
+  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+  //       ) : (
+  //         <IconLoader />
+  //       )}
+  //       {row.original.idc}
+  //     </Badge>
+  //   ),
+  // },
 
-    {
-    accessorKey: "location",
-    header: "location",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.location}
-      </Badge>
-    ),
-  },
+  //   {
+  //   accessorKey: "location",
+  //   header: "location",
+  //   cell: ({ row }) => (
+  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //       {row.original.status === "Done" ? (
+  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+  //       ) : (
+  //         <IconLoader />
+  //       )}
+  //       {row.original.location}
+  //     </Badge>
+  //   ),
+  // },
 
 
-    {
-    accessorKey: "os",
-    header: "OS",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.os}
-        </Badge>
-      </div>
-    ),
-  },
+  //   {
+  //   accessorKey: "os",
+  //   header: "OS",
+  //   cell: ({ row }) => (
+  //     <div className="w-32">
+  //       <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //         {row.original.os}
+  //       </Badge>
+  //     </div>
+  //   ),
+  // },
 
   {
     accessorKey: "cores",
@@ -257,13 +257,13 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.cpuCores}
+          {row.original.cpuCore}
         </Badge>
       </div>
     ),
   },
 
-    {
+  {
     accessorKey: "memory",
     header: "memory",
     cell: ({ row }) => (
@@ -275,7 +275,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     ),
   },
 
-    {
+  {
     accessorKey: "disk",
     header: "disk",
     cell: ({ row }) => (
@@ -287,68 +287,68 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     ),
   },
 
-  {
-    accessorKey: "tags",
-    header: "Tags",
-    cell: ({ row }) => (
-      <div className="w-32 flex flex-wrap gap-1">
-        {Array.isArray(row.original.tags) 
-          ? row.original.tags.map((tag, index) => (
-              <Badge 
-                key={index} 
-                variant="outline" 
-                className="text-muted-foreground px-1.5"
-              >
-                {tag}
-              </Badge>
-            ))
-          : <Badge variant="outline" className="text-muted-foreground px-1.5">
-              {row.original.tags}
-            </Badge>
-        }
-      </div>
-    ),
-  },
+  // {
+  //   accessorKey: "tags",
+  //   header: "Tags",
+  //   cell: ({ row }) => (
+  //     <div className="w-32 flex flex-wrap gap-1">
+  //       {Array.isArray(row.original.tags) 
+  //         ? row.original.tags.map((tag, index) => (
+  //             <Badge 
+  //               key={index} 
+  //               variant="outline" 
+  //               className="text-muted-foreground px-1.5"
+  //             >
+  //               {tag}
+  //             </Badge>
+  //           ))
+  //         : <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //             {row.original.tags}
+  //           </Badge>
+  //       }
+  //     </div>
+  //   ),
+  // },
 
-  {
-    accessorKey: "description",
-    header: "description",
-    cell: ({ row }) => (
-      <div className="min-w-[32ch]">
-        <Badge variant="outline" className="text-muted-foreground px-1.5 whitespace-normal break-words w-full">
-          {row.original.description} 
-        </Badge>
-      </div>
-    ),
-  },
+  // {
+  //   accessorKey: "description",
+  //   header: "description",
+  //   cell: ({ row }) => (
+  //     <div className="min-w-[32ch]">
+  //       <Badge variant="outline" className="text-muted-foreground px-1.5 whitespace-normal break-words w-full">
+  //         {row.original.description} 
+  //       </Badge>
+  //     </div>
+  //   ),
+  // },
 
-    {
-    accessorKey: "cluster",
-    header: "cluster",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.k8sCluster} 
-        </Badge>
-      </div>
-    ),
-  },
+  //   {
+  //   accessorKey: "cluster",
+  //   header: "cluster",
+  //   cell: ({ row }) => (
+  //     <div className="w-32">
+  //       <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //         {row.original.k8sCluster} 
+  //       </Badge>
+  //     </div>
+  //   ),
+  // },
 
 
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
-      </Badge>
-    ),
-  }
+  // {
+  //   accessorKey: "status",
+  //   header: "Status",
+  //   cell: ({ row }) => (
+  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
+  //       {row.original.status === "Done" ? (
+  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+  //       ) : (
+  //         <IconLoader />
+  //       )}
+  //       {row.original.status}
+  //     </Badge>
+  //   ),
+  // }
 
 
 ];
@@ -551,7 +551,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
                   <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                  {[10, 20, 30, 40, 50, 100].map((pageSize) => (
                     <SelectItem key={pageSize} value={`${pageSize}`}>
                       {pageSize}
                     </SelectItem>

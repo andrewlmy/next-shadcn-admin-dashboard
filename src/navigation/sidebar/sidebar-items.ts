@@ -14,6 +14,8 @@ import {
   Fingerprint,
   SquareArrowUpRight,
   Server,
+  ServerCog,
+  LayoutTemplate,
   type LucideIcon,
 
 } from "lucide-react";
@@ -55,9 +57,14 @@ export const sidebarItems: NavGroup[] = [
         subItems: [
           { title: "Default", url: `/dashboard/default`, icon: ChartPie },
           { title: "Hosts", url: `/dashboard/hosts`, icon: Server },
+          { title: "Services", url: `/dashboard/services`, icon: ServerCog },
+          { title: "EnvTemplates", url: `/dashboard/env_templates`, icon: LayoutTemplate },
+          { title: "PangaeaEnvs", url: `/dashboard/pangaea_envs`, icon: LayoutTemplate },
+
+          
           { title: "Analytics", url: `/dashboard/analytics`, icon: ChartLine, comingSoon: true },
-          { title: "eCommerce", url: `/dashboard/e-commerce`, icon: ShoppingBag, comingSoon: true },
-          { title: "Academy", url: `/dashboard/academy`, icon: BookA, comingSoon: true },
+          // { title: "eCommerce", url: `/dashboard/e-commerce`, icon: ShoppingBag, comingSoon: true },
+          // { title: "Academy", url: `/dashboard/academy`, icon: BookA, comingSoon: true },
           { title: "Logistics", url: `/dashboard/logistics`, icon: Forklift, comingSoon: true },
         ],
       },
@@ -67,27 +74,27 @@ export const sidebarItems: NavGroup[] = [
     id: 2,
     label: "Pages",
     items: [
-      {
-        title: "Authentication",
-        url: "/auth",
-        icon: Fingerprint,
-        subItems: [
-          { title: "Login v1", url: "/auth/v1/login", newTab: true },
-          { title: "Register v1", url: "/auth/v1/register", newTab: true },
-        ],
-      },
-      {
-        title: "Email",
-        url: "/dashboard/coming-soon",
-        icon: Mail,
-        comingSoon: true,
-      },
-      {
-        title: "Chat",
-        url: "/dashboard/coming-soon",
-        icon: MessageSquare,
-        comingSoon: true,
-      },
+      // {
+      //   title: "Authentication",
+      //   url: "/auth",
+      //   icon: Fingerprint,
+      //   subItems: [
+      //     { title: "Login v1", url: "/auth/v1/login", newTab: true },
+      //     { title: "Register v1", url: "/auth/v1/register", newTab: true },
+      //   ],
+      // },
+      // {
+      //   title: "Email",
+      //   url: "/dashboard/coming-soon",
+      //   icon: Mail,
+      //   comingSoon: true,
+      // },
+      // {
+      //   title: "Chat",
+      //   url: "/dashboard/coming-soon",
+      //   icon: MessageSquare,
+      //   comingSoon: true,
+      // },
       {
         title: "Calendar",
         url: "/dashboard/coming-soon",
@@ -95,10 +102,13 @@ export const sidebarItems: NavGroup[] = [
         comingSoon: true,
       },
       {
-        title: "Kanban",
-        url: "/dashboard/coming-soon",
+        title: "BizData",
+        url: "/dashboard/biz-data",
         icon: Kanban,
-        comingSoon: true,
+        subItems: [
+          { title: "biz_incr_business_mmap", url: "/dashboard/biz-data/biz-incr-business-mmap" },
+          
+        ], 
       },
       {
         title: "Invoice",

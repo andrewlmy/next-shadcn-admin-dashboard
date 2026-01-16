@@ -26,7 +26,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html
       lang="en"
       className={themeMode === "dark" ? "dark" : ""}
-      data-theme-preset={themePreset}
+      {...(themePreset !== "default" ? { "data-theme-preset": themePreset } : {})}
       suppressHydrationWarning
     >
       <body className={`${inter.className} min-h-screen antialiased`}>

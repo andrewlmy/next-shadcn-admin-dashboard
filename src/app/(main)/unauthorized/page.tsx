@@ -12,10 +12,17 @@ export default function page() {
           You do not have permission to view the requested content. Please contact the site administrator if you believe
           this is an error.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex gap-4 justify-center">
           <Link
-            href="dashboard"
+            href="/api/auth/cas/login"
             className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-xs transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
+            prefetch={false}
+          >
+            Login with CAS
+          </Link>
+          <Link
+            href="/dashboard"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/90 focus:ring-secondary inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-xs transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
             prefetch={false}
           >
             Go to Homepage

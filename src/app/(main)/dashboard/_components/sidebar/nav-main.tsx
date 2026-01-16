@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { PlusCircleIcon, MailIcon, ChevronRight } from "lucide-react";
 
@@ -26,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { type NavGroup, type NavMainItem } from "@/navigation/sidebar/sidebar-items";
+import { QuickCreatePopup } from "./quick-create-popup";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
@@ -144,6 +146,7 @@ const NavItemCollapsed = ({
 export function NavMain({ items }: NavMainProps) {
   const path = usePathname();
   const { state, isMobile } = useSidebar();
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
 
   const isItemActive = (url: string, subItems?: NavMainItem["subItems"]) => {
     if (subItems?.length) {
@@ -165,6 +168,7 @@ export function NavMain({ items }: NavMainProps) {
               <SidebarMenuButton
                 tooltip="Quick Create"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
+                onClick={() => setIsQuickCreateOpen(true)}
               >
                 <PlusCircleIcon />
                 <span>Quick Create</span>
@@ -218,6 +222,11 @@ export function NavMain({ items }: NavMainProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       ))}
+      
+      <QuickCreatePopup 
+        open={isQuickCreateOpen} 
+        onOpenChange={setIsQuickCreateOpen} 
+      />
     </>
   );
 }

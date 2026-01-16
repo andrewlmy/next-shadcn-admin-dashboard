@@ -8,5 +8,17 @@ export function updateThemeMode(value: "light" | "dark") {
 }
 
 export function updateThemePreset(value: string) {
-  document.documentElement.setAttribute("data-theme-preset", value);
+  const doc = document.documentElement;
+  doc.classList.add("disable-transitions");
+  
+  if (value && value !== "default") {
+    doc.setAttribute("data-theme-preset", value);
+  } else {
+    // Remove attribute for default theme
+    doc.removeAttribute("data-theme-preset");
+  }
+  
+  requestAnimationFrame(() => {
+    doc.classList.remove("disable-transitions");
+  });
 }
