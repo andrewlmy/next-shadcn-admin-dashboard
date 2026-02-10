@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { setSession } from '@/lib/session';
+
+const SESSION_COOKIE_NAME = 'cas_session';
+const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
 
 /**
  * CAS Callback Route
@@ -17,7 +19,9 @@ export async function GET(request: NextRequest) {
     const url = request.nextUrl;
     const cb = url.searchParams.get('cb');
     const ticket = url.searchParams.get('ticket');
-    const returnUrl = url.searchParams.get('returnUrl') || '/dashboard';
+    // Normalize "/" to "/dashboard" so post-login always lands on dashboard
+    let returnUrl = url.searchParams.get('returnUrl') || '/dashboard';
+    if (returnUrl === '/' || returnUrl === '') returnUrl = '/dashboard';
 
     // Debug logging
     console.log('CAS Callback received:', {
@@ -37,22 +41,17 @@ export async function GET(request: NextRequest) {
     // CAS might redirect without cb=1 first, then with ticket
     // Handle both cases: with cb=1 and ticket, or just ticket
     if (ticket) {
-      // Construct service URL (must EXACTLY match the one sent to CAS during login)
-      // Use the current callback URL but remove the ticket parameter
-      // CAS may have decoded some parameters, so we use what CAS redirected to
-      const serviceUrlForValidation = new URL(url);
-      serviceUrlForValidation.searchParams.delete('ticket');
-      
-      // The service URL should match what was sent to CAS login
-      // Reconstruct it to ensure exact match (with cb=1 and returnUrl)
-      const reconstructedServiceUrl = `${url.origin}${url.pathname}?cb=1&returnUrl=${encodeURIComponent(returnUrl)}`;
-      const serviceUrl = encodeURIComponent(reconstructedServiceUrl);
+      // Service URL for validation must EXACTLY match the one sent to CAS at login.
+      // 1) Use same origin as login (NEXT_PUBLIC_APP_URL or default ops3), not request origin.
+      // 2) Use exact query string from callback (without ticket), same returnUrl/cb as CAS has.
+      const origin = process.env.NEXT_PUBLIC_APP_URL
+        ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
+        : 'http://ops3-19ee08662.qiyi.virtual:3000';
+      const params = new URLSearchParams(url.searchParams);
+      params.delete('ticket');
+      const serviceUrlForValidation = `${origin}${url.pathname}?${params.toString()}`;
+      const serviceUrl = encodeURIComponent(serviceUrlForValidation);
       const validateUrl = `${casBaseUrl}/cas/serviceValidate?ticket=${ticket}&service=${serviceUrl}`;
-
-      console.log('Callback URL from CAS:', url.toString());
-      console.log('Reconstructed service URL for validation:', reconstructedServiceUrl);
-      console.log('Encoded service URL:', serviceUrl);
-      console.log('Validating ticket with CAS:', validateUrl);
 
       // Fetch CAS validation response
       const validateResponse = await fetch(validateUrl);
@@ -81,15 +80,22 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Create session
-      await setSession({
+      // Build redirect response and set session cookie ON the response
+      // (cookies().set() does not attach to NextResponse.redirect() in Route Handlers)
+      const redirectResponse = NextResponse.redirect(new URL(returnUrl, request.url));
+      const sessionPayload = JSON.stringify({
         username,
         attributes,
         ticket: ticket || undefined,
       });
-
-      // Redirect to the original destination or dashboard
-      return NextResponse.redirect(new URL(returnUrl, request.url));
+      redirectResponse.cookies.set(SESSION_COOKIE_NAME, sessionPayload, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: SESSION_MAX_AGE,
+        path: '/',
+      });
+      return redirectResponse;
     }
 
     // No ticket - authentication failed or was cancelled

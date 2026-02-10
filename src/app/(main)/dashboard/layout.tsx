@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { users } from "@/data/users";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 import {
@@ -22,9 +21,58 @@ import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 
+type CasSession = {
+  readonly username: string;
+  readonly email?: string;
+  readonly attributes?: Record<string, string | string[]>;
+  readonly ticket?: string;
+};
+
+function firstAttr(attributes: CasSession["attributes"] | undefined, key: string): string | undefined {
+  const v = attributes?.[key];
+  if (!v) return undefined;
+  return Array.isArray(v) ? v[0] : v;
+}
+
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+
+  let session: CasSession | null = null;
+  const sessionRaw = cookieStore.get("cas_session")?.value;
+  if (sessionRaw) {
+    try {
+      session = JSON.parse(sessionRaw) as CasSession;
+    } catch {
+      session = null;
+    }
+  }
+
+  const username = session?.username || "Unknown";
+  const name =
+    firstAttr(session?.attributes, "displayName") ||
+    firstAttr(session?.attributes, "cn") ||
+    firstAttr(session?.attributes, "name") ||
+    username;
+  const email =
+    session?.email ||
+    firstAttr(session?.attributes, "email") ||
+    firstAttr(session?.attributes, "mail") ||
+    username;
+  const avatar =
+    firstAttr(session?.attributes, "avatar") ||
+    firstAttr(session?.attributes, "picture") ||
+    firstAttr(session?.attributes, "photo") ||
+    "";
+  const role = firstAttr(session?.attributes, "role") || "user";
+
+  const currentUser = {
+    id: username,
+    name,
+    email,
+    avatar,
+    role,
+  };
 
   const [sidebarVariant, sidebarCollapsible, contentLayout] = await Promise.all([
     getPreference<SidebarVariant>("sidebar_variant", SIDEBAR_VARIANT_VALUES, "inset"),
@@ -40,7 +88,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar variant={sidebarVariant} collapsible={sidebarCollapsible} />
+      <AppSidebar user={currentUser} variant={sidebarVariant} collapsible={sidebarCollapsible} />
       <SidebarInset
         data-content-layout={contentLayout}
         className={cn(
@@ -60,7 +108,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             <div className="flex items-center gap-2">
               <LayoutControls {...layoutPreferences} />
               <ThemeSwitcher />
-              <AccountSwitcher users={users} />
+              <AccountSwitcher users={[currentUser]} />
             </div>
           </div>
         </header>

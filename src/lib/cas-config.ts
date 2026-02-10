@@ -21,10 +21,11 @@ export function getCasConfig() {
 }
 
 export function getCasServiceUrl(requestUrl?: string) {
+  // Prioritize NEXT_PUBLIC_APP_URL for CAS callbacks to ensure consistent URLs
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                   (process.env.VERCEL_URL 
                     ? `https://${process.env.VERCEL_URL}`
-                    : 'http://localhost:3000');
+                    : 'http://ops3-19ee08662.qiyi.virtual:3000');
   
   // Use provided requestUrl or construct callback URL
   const serviceUrl = requestUrl || `${baseUrl}/api/auth/cas/callback`;

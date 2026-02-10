@@ -9,8 +9,12 @@ export async function GET(request: NextRequest) {
     : 'https://sso.qiyi.com/cas/login';
   
   // Get the service URL (where CAS should redirect after login)
-  const returnUrl = request.nextUrl.searchParams.get('returnUrl') || '/dashboard';
-  const baseUrl = request.nextUrl.origin;
+  // Normalize "/" to "/dashboard" so post-login always lands on dashboard
+  let returnUrl = request.nextUrl.searchParams.get('returnUrl') || '/dashboard';
+  if (returnUrl === '/' || returnUrl === '') returnUrl = '/dashboard';
+  
+  // Use NEXT_PUBLIC_APP_URL or default ops3 (do not use localhost for CAS)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://ops3-19ee08662.qiyi.virtual:3000';
   
   // Service URL must include cb=1 for CAS callback flow
   const callbackUrl = `${baseUrl}/api/auth/cas/callback?cb=1&returnUrl=${encodeURIComponent(returnUrl)}`;
@@ -19,11 +23,5 @@ export async function GET(request: NextRequest) {
   // Construct CAS login URL
   const casLoginUrl = `${casServerUrl}?service=${serviceUrl}`;
   
-  // Debug logging
-  console.log('CAS Login - Service URL sent to CAS:', callbackUrl);
-  console.log('CAS Login - Encoded service URL:', serviceUrl);
-  console.log('CAS Login - Full CAS URL:', casLoginUrl);
-  
-  // Redirect to CAS server
   return NextResponse.redirect(casLoginUrl);
 }
