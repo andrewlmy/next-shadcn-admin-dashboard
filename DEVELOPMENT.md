@@ -1,6 +1,13 @@
 # Development Setup Guide
 
-## Running on ops3-19ee08662.qiyi.virtual
+## Hosts
+
+- **ops3-19ee08662.qiyi.virtual**: dev & test
+- **ops4-1553aa9d7.qiyi.virtual**: production
+
+When `NEXT_PUBLIC_APP_URL` is not set, the app defaults to ops3 for `ENV=dev/test` and ops4 for production.
+
+## Running on ops3-19ee08662.qiyi.virtual (Dev/Test)
 
 ### Prerequisites
 - Node.js (v18+ recommended)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getAppBaseUrl } from '@/lib/cas-config';
 
 /**
  * Middleware to protect routes
@@ -28,8 +29,9 @@ export function middleware(request: NextRequest) {
   
   if (!sessionCookie?.value) {
     // No session, redirect to CAS login
-    // Try the nested path first, fallback to simpler path if needed
-    const loginUrl = new URL('/api/auth/cas/login', request.url);
+    // Use canonical app URL so redirect stays on ops3/ops4 host (not localhost when behind proxy)
+    const base = getAppBaseUrl();
+    const loginUrl = new URL('/api/auth/cas/login', base);
     loginUrl.searchParams.set('returnUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -41,7 +43,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   } catch {
     // Invalid session cookie, redirect to login
-    const loginUrl = new URL('/api/auth/cas/login', request.url);
+    const base = getAppBaseUrl();
+    const loginUrl = new URL('/api/auth/cas/login', base);
     loginUrl.searchParams.set('returnUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }

@@ -85,25 +85,19 @@ export const schema = z.object({
   sn: z.string(),
   ip: z.string(),
   publicIp: z.string(),
-  // idc: z.string(),
-  // location: z.string(),
-  // status: z.string(),
-  // os: z.string(),
-  // cpu: z.string(),
   cpuCore: z.number(),
   memory: z.number(),
-  // diskType: z.string(),
   diskVolume: z.number(),
-  // tags: z.array(z.string()),
-  // description: z.string(),
-  // createdAt: z.string(),
-  // updatedAt: z.string(),
-
-  // owner: z.string(),
-  // contract : z.string(),
-  // k8sCluster: z.string(),
-
-
+  header: z.string(),
+  status: z.string(),
+  idc: z.string().optional(),
+  remarks: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  services: z.array(z.string()).optional(),
+  type: z.string().optional(),
+  target: z.string().optional(),
+  limit: z.string().optional(),
+  reviewer: z.string().optional(),
 });
 
 // Create a separate component for the drag handle
@@ -164,7 +158,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     },
     enableHiding: false,
   },
-
+  {
+    accessorKey: "ip",
+    header: "IP",
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.status === "Done" ? (
+          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+        ) : (
+          <IconLoader />
+        )}
+        {row.original.ip}
+      </Badge>
+    ),
+  },
   {
     accessorKey: "sn",
     header: "SN",
@@ -176,21 +183,6 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           <IconLoader />
         )}
         {row.original.sn}
-      </Badge>
-    ),
-  },
-
-    {
-    accessorKey: "ip",
-    header: "IP",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.ip}
       </Badge>
     ),
   },
@@ -208,20 +200,51 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       </Badge>
     ),
   },
-  // {
-  //   accessorKey: "idc",
-  //   header: "idc",
-  //   cell: ({ row }) => (
-  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
-  //       {row.original.status === "Done" ? (
-  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-  //       ) : (
-  //         <IconLoader />
-  //       )}
-  //       {row.original.idc}
-  //     </Badge>
-  //   ),
-  // },
+  {
+    accessorKey: "idc",
+    header: ({ table }) => {
+      const meta = table.options.meta as {
+        idcFilter?: string;
+        setIdcFilter?: (v: string) => void;
+        uniqueIdcs?: string[];
+      };
+      if (!meta?.setIdcFilter || !meta?.uniqueIdcs) return "idc";
+      return (
+        <div className="flex flex-col gap-1">
+          <span>idc</span>
+          <Select value={meta.idcFilter ?? "all"} onValueChange={meta.setIdcFilter}>
+            <SelectTrigger className="h-7 w-[120px]" size="sm">
+              <SelectValue placeholder="all" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">all</SelectItem>
+              {meta.uniqueIdcs.map((idc) => (
+                <SelectItem key={idc} value={idc}>
+                  {idc}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    },
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      const idc = row.original.idc ?? "";
+      if (filterValue === "(empty)") return !idc;
+      return idc === filterValue;
+    },
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.status === "Done" ? (
+          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+        ) : (
+          <IconLoader />
+        )}
+        {row.original.idc ?? "—"}
+      </Badge>
+    ),
+  },
 
   //   {
   //   accessorKey: "location",
@@ -286,29 +309,36 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       </div>
     ),
   },
-
-  // {
-  //   accessorKey: "tags",
-  //   header: "Tags",
-  //   cell: ({ row }) => (
-  //     <div className="w-32 flex flex-wrap gap-1">
-  //       {Array.isArray(row.original.tags) 
-  //         ? row.original.tags.map((tag, index) => (
-  //             <Badge 
-  //               key={index} 
-  //               variant="outline" 
-  //               className="text-muted-foreground px-1.5"
-  //             >
-  //               {tag}
-  //             </Badge>
-  //           ))
-  //         : <Badge variant="outline" className="text-muted-foreground px-1.5">
-  //             {row.original.tags}
-  //           </Badge>
-  //       }
-  //     </div>
-  //   ),
-  // },
+  {
+    accessorKey: "remarks",
+    header: "remarks",
+    cell: ({ row }) => (
+      <div className="min-w-[12ch] max-w-[24ch] truncate" title={row.original.remarks ?? ""}>
+        <Badge variant="outline" className="text-muted-foreground px-1.5 font-normal">
+          {row.original.remarks ?? "—"}
+        </Badge>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "tags",
+    header: "tags",
+    cell: ({ row }) => (
+      <div className="flex min-w-[10ch] max-w-[20ch] flex-wrap gap-1">
+        {Array.isArray(row.original.tags) && row.original.tags.length > 0 ? (
+          row.original.tags.map((tag, index) => (
+            <Badge key={index} variant="outline" className="text-muted-foreground px-1.5">
+              {tag}
+            </Badge>
+          ))
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground px-1.5">
+            —
+          </Badge>
+        )}
+      </div>
+    ),
+  },
 
   // {
   //   accessorKey: "description",
@@ -382,14 +412,34 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [idcFilter, setIdcFilter] = React.useState<string>("all");
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 50,
   });
   const sortableId = React.useId();
   const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}));
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data]);
+
+  const uniqueIdcs = React.useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((row) => {
+      const v = row.idc?.trim() ?? "";
+      set.add(v || "(empty)");
+    });
+    return Array.from(set).sort((a, b) =>
+      a === "(empty)" ? 1 : b === "(empty)" ? -1 : a.localeCompare(b)
+    );
+  }, [data]);
+
+  React.useEffect(() => {
+    setColumnFilters((prev) => {
+      const rest = prev.filter((f) => f.id !== "idc");
+      if (idcFilter === "all") return rest;
+      return [...rest, { id: "idc", value: idcFilter }];
+    });
+  }, [idcFilter]);
 
   const table = useReactTable({
     data,
@@ -401,6 +451,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
       columnFilters,
       pagination,
     },
+    meta: { idcFilter, setIdcFilter, uniqueIdcs },
     getRowId: (row) => row.id.toString(),
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
@@ -482,10 +533,10 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm">
+          {/* <Button variant="outline" size="sm">
             <IconPlus />
             <span className="hidden lg:inline">Add Section</span>
-          </Button>
+          </Button> */}
         </div>
       </div>
       <TabsContent value="outline" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
@@ -710,12 +761,12 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
           <form className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
               <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
+              <Input id="header" defaultValue={item.header ?? ""} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
                 <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type}>
+                <Select defaultValue={item.type ?? ""}>
                   <SelectTrigger id="type" className="w-full">
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
@@ -733,7 +784,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
               </div>
               <div className="flex flex-col gap-3">
                 <Label htmlFor="status">Status</Label>
-                <Select defaultValue={item.status}>
+                <Select defaultValue={item.status ?? "Done"}>
                   <SelectTrigger id="status" className="w-full">
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
@@ -748,16 +799,16 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
                 <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
+                <Input id="target" defaultValue={item.target ?? ""} />
               </div>
               <div className="flex flex-col gap-3">
                 <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
+                <Input id="limit" defaultValue={item.limit ?? ""} />
               </div>
             </div>
             <div className="flex flex-col gap-3">
               <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
+              <Select defaultValue={item.reviewer ?? ""}>
                 <SelectTrigger id="reviewer" className="w-full">
                   <SelectValue placeholder="Select a reviewer" />
                 </SelectTrigger>

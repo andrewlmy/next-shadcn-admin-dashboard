@@ -1,6 +1,5 @@
 import { DataTable } from "./data-table";
-import { SectionCards } from "./section-cards";
-import { db } from "@/lib/db";
+import { getServices, getServicesCounts } from "@/lib/services-pg";
 
 export default async function ServicesPage() {
   let data: {
@@ -13,51 +12,29 @@ export default async function ServicesPage() {
     enableContrastTest: number;
     createdAt: Date;
     updatedAt: Date;
-  }[] = []
-
-// Fetch total count and other statistics
+  }[] = [];
   let totalServices = 0;
   let enabledServices = 0;
   let disabledServices = 0;
 
   try {
-    const [rows, totalCount, enabledCount, disabledCount]  = await Promise.all([
-      db.service.findMany({
-        select: {
-            id: true,
-            name: true,
-            disable: true,
-            port: true,
-            projectId: true,
-            enablePressureTest: true,
-            enableContrastTest: true,
-            dateCreate: true,
-            dateLastUpdate: true,
-        },
-      orderBy: { id: "asc" },
-    }),
-    db.service.count(),
-    db.service.count({ where: { disable: false } }),
-    db.service.count({ where: { disable: true } }),
-  ]);
-
+    const [rows, counts] = await Promise.all([getServices(), getServicesCounts()]);
     data = rows.map((r) => ({
       id: r.id,
       name: r.name,
-      status: r.disable ? 'disabled' : 'enabled',
+      status: r.status,
       port: r.port,
       projectId: r.projectId,
       enablePressureTest: r.enablePressureTest,
       enableContrastTest: r.enableContrastTest,
-      createdAt: r.dateCreate,
-      updatedAt: r.dateLastUpdate,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
     }));
-    // Calculate statistics
-    totalServices = totalCount;
-    enabledServices = enabledCount;
-    disabledServices = disabledCount;
+    totalServices = counts.total;
+    enabledServices = counts.enabled;
+    disabledServices = counts.disabled;
   } catch (error) {
-    console.error("Error fetching services from MySQL:", error);
+    console.error("Error fetching services from PostgreSQL:", error);
   }
 
   return (

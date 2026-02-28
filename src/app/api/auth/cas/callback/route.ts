@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getAppBaseUrl } from '@/lib/cas-config';
 
 const SESSION_COOKIE_NAME = 'cas_session';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
@@ -38,18 +39,18 @@ export async function GET(request: NextRequest) {
       ? 'http://test-sso.iqiyi.com'
       : 'https://sso.qiyi.com';
 
+    // Use canonical app URL for redirects so users land on ops3/ops4 host, not localhost
+    const appOrigin = new URL(getAppBaseUrl()).origin;
+
     // CAS might redirect without cb=1 first, then with ticket
     // Handle both cases: with cb=1 and ticket, or just ticket
     if (ticket) {
       // Service URL for validation must EXACTLY match the one sent to CAS at login.
       // 1) Use same origin as login (NEXT_PUBLIC_APP_URL or default ops3), not request origin.
       // 2) Use exact query string from callback (without ticket), same returnUrl/cb as CAS has.
-      const origin = process.env.NEXT_PUBLIC_APP_URL
-        ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
-        : 'http://ops3-19ee08662.qiyi.virtual:3000';
       const params = new URLSearchParams(url.searchParams);
       params.delete('ticket');
-      const serviceUrlForValidation = `${origin}${url.pathname}?${params.toString()}`;
+      const serviceUrlForValidation = `${appOrigin}${url.pathname}?${params.toString()}`;
       const serviceUrl = encodeURIComponent(serviceUrlForValidation);
       const validateUrl = `${casBaseUrl}/cas/serviceValidate?ticket=${ticket}&service=${serviceUrl}`;
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
       if (!usernameMatch) {
         // Ticket validation failed
         console.error('CAS ticket validation failed. Full response:', validateText);
-        return NextResponse.redirect(new URL('/unauthorized', request.url));
+        return NextResponse.redirect(new URL('/unauthorized', appOrigin));
       }
 
       const username = usernameMatch[1];
@@ -82,7 +83,8 @@ export async function GET(request: NextRequest) {
 
       // Build redirect response and set session cookie ON the response
       // (cookies().set() does not attach to NextResponse.redirect() in Route Handlers)
-      const redirectResponse = NextResponse.redirect(new URL(returnUrl, request.url));
+      // Use appOrigin so redirect lands on ops3 host, not localhost (e.g. when behind proxy)
+      const redirectResponse = NextResponse.redirect(new URL(returnUrl, appOrigin));
       const sessionPayload = JSON.stringify({
         username,
         attributes,
@@ -100,9 +102,9 @@ export async function GET(request: NextRequest) {
 
     // No ticket - authentication failed or was cancelled
     console.log('No ticket in callback. URL params:', Object.fromEntries(url.searchParams.entries()));
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    return NextResponse.redirect(new URL('/unauthorized', appOrigin));
   } catch (error) {
     console.error('CAS callback error:', error);
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    return NextResponse.redirect(new URL('/unauthorized', appOrigin));
   }
 }

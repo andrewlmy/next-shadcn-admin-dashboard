@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getAppBaseUrl } from '@/lib/cas-config';
 
 export async function GET(request: NextRequest) {
   // Get environment configuration
@@ -13,8 +14,8 @@ export async function GET(request: NextRequest) {
   let returnUrl = request.nextUrl.searchParams.get('returnUrl') || '/dashboard';
   if (returnUrl === '/' || returnUrl === '') returnUrl = '/dashboard';
   
-  // Use NEXT_PUBLIC_APP_URL or default ops3 (do not use localhost for CAS)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://ops3-19ee08662.qiyi.virtual:3000';
+  // Use ops3 (dev/test) or ops4 (prod) - do not use localhost for CAS
+  const baseUrl = getAppBaseUrl();
   
   // Service URL must include cb=1 for CAS callback flow
   const callbackUrl = `${baseUrl}/api/auth/cas/callback?cb=1&returnUrl=${encodeURIComponent(returnUrl)}`;

@@ -1,49 +1,22 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getServices } from '@/lib/services-pg'
 
 export async function GET() {
   try {
-    const rows = await db.service.findMany({
-      select: {
-        id: true,
-        name: true,
-        disable: true,
-        dateCreate: true,
-        dateLastUpdate: true,
-        projectId: true,
-        port: true,
-        enablePressureTest: true,
-        dockerLabelId: true,
-        enableContrastTest: true,
-        contrastTestDefaultIp: true,
-        contrastTestDefaultTestIp: true,
-        contrastTestDefaultDockerName: true,
-        contrastTestDefaultLogFolder: true,
-        contrastTestDefaultResultPort: true,
-      },
-      orderBy: { id: 'desc' },
-    })
-
-    const data = rows.map(r => ({
+    const rows = await getServices()
+    const data = rows.map((r) => ({
       id: r.id,
       name: r.name,
-      status: r.disable ? 'disabled' : 'enabled',
+      status: r.status,
       port: r.port,
       projectId: r.projectId,
       enablePressureTest: r.enablePressureTest,
       enableContrastTest: r.enableContrastTest,
-      createdAt: r.dateCreate,
-      updatedAt: r.dateLastUpdate,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
       dockerLabelId: r.dockerLabelId,
-      contrastTest: {
-        defaultIp: r.contrastTestDefaultIp,
-        testIp: r.contrastTestDefaultTestIp,
-        dockerName: r.contrastTestDefaultDockerName,
-        logFolder: r.contrastTestDefaultLogFolder,
-        resultPort: r.contrastTestDefaultResultPort,
-      }
+      contrastTest: r.contrastTest,
     }))
-
     return NextResponse.json(data)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal Server Error'

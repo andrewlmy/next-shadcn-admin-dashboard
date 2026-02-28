@@ -74,41 +74,23 @@ export const sidebarItems: NavGroup[] = [
     id: 2,
     label: "Pages",
     items: [
-      // {
-      //   title: "Authentication",
-      //   url: "/auth",
-      //   icon: Fingerprint,
-      //   subItems: [
-      //     { title: "Login v1", url: "/auth/v1/login", newTab: true },
-      //     { title: "Register v1", url: "/auth/v1/register", newTab: true },
-      //   ],
-      // },
-      // {
-      //   title: "Email",
-      //   url: "/dashboard/coming-soon",
-      //   icon: Mail,
-      //   comingSoon: true,
-      // },
-      // {
-      //   title: "Chat",
-      //   url: "/dashboard/coming-soon",
-      //   icon: MessageSquare,
-      //   comingSoon: true,
-      // },
+      {
+        title: "Email",
+        url: "/dashboard/coming-soon",
+        icon: Mail,
+        comingSoon: true,
+      },
+      {
+        title: "Chat",
+        url: "/dashboard/coming-soon",
+        icon: MessageSquare,
+        comingSoon: true,
+      },
       {
         title: "Calendar",
         url: "/dashboard/coming-soon",
         icon: Calendar,
         comingSoon: true,
-      },
-      {
-        title: "BizData",
-        url: "/dashboard/biz-data",
-        icon: Kanban,
-        subItems: [
-          { title: "biz_incr_business_mmap", url: "/dashboard/biz-data/biz-incr-business-mmap" },
-          
-        ], 
       },
       {
         title: "Invoice",
@@ -143,11 +125,19 @@ export const sidebarItems: NavGroup[] = [
   },
   {
     id: 3,
-    label: "Misc",
+    label: "Monitoring",
     items: [
       {
+        title: "BizData",
+        url: "/monitoring/biz-data",
+        icon: Kanban,
+        subItems: [
+          { title: "biz_incr_business_mmap", url: "/monitoring/biz-data/biz-incr-business-mmap" },
+        ], 
+      },
+      {
         title: "Others",
-        url: "/dashboard/coming-soon",
+        url: "/monitoring/coming-soon",
         icon: SquareArrowUpRight,
         comingSoon: true,
       },
