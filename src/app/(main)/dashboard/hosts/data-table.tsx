@@ -18,6 +18,8 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  IconArrowDown,
+  IconArrowUp,
   IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
@@ -29,7 +31,7 @@ import {
   IconLayoutColumns,
   IconLoader,
   IconPlus,
-  IconTrendingUp,
+  IconSelector,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -46,13 +48,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Drawer,
@@ -72,13 +72,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRouter } from "next/navigation";
 
 export const schema = z.object({
   id: z.number(),
@@ -90,7 +90,11 @@ export const schema = z.object({
   diskVolume: z.number(),
   header: z.string(),
   status: z.string(),
+  updatedAt: z.date().nullable().optional(),
   idc: z.string().optional(),
+  k8sCluster: z.string().optional(),
+  os: z.string().optional(),
+  kernel: z.string().optional(),
   remarks: z.string().optional(),
   tags: z.array(z.string()).optional(),
   services: z.array(z.string()).optional(),
@@ -151,23 +155,38 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
-    cell: ({ row }) => {
-      return <TableCellViewer item={row.original} />;
+    accessorKey: "id",
+    header: "Id",
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as { onRemarksSaved?: (hostId: number, remarks: string) => void };
+      return <TableCellViewer item={row.original} onRemarksSaved={meta?.onRemarksSaved} />;
     },
     enableHiding: false,
   },
   {
     accessorKey: "ip",
-    header: "IP",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          IP
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
         {row.original.ip}
       </Badge>
     ),
@@ -188,14 +207,28 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "publicIp",
-    header: "public ip",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          Public Ip
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
         {row.original.publicIp}
       </Badge>
     ),
@@ -208,10 +241,10 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         setIdcFilter?: (v: string) => void;
         uniqueIdcs?: string[];
       };
-      if (!meta?.setIdcFilter || !meta?.uniqueIdcs) return "idc";
+      if (!meta?.setIdcFilter || !meta?.uniqueIdcs) return "IDC";
       return (
-        <div className="flex flex-col gap-1">
-          <span>idc</span>
+        <div className="flex flex-row items-center gap-2">
+          <span className="shrink-0">idc</span>
           <Select value={meta.idcFilter ?? "all"} onValueChange={meta.setIdcFilter}>
             <SelectTrigger className="h-7 w-[120px]" size="sm">
               <SelectValue placeholder="all" />
@@ -236,47 +269,198 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     },
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
         {row.original.idc ?? "—"}
       </Badge>
     ),
   },
-
-  //   {
-  //   accessorKey: "location",
-  //   header: "location",
-  //   cell: ({ row }) => (
-  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
-  //       {row.original.status === "Done" ? (
-  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-  //       ) : (
-  //         <IconLoader />
-  //       )}
-  //       {row.original.location}
-  //     </Badge>
-  //   ),
-  // },
-
-
-  //   {
-  //   accessorKey: "os",
-  //   header: "OS",
-  //   cell: ({ row }) => (
-  //     <div className="w-32">
-  //       <Badge variant="outline" className="text-muted-foreground px-1.5">
-  //         {row.original.os}
-  //       </Badge>
-  //     </div>
-  //   ),
-  // },
+  {
+    accessorKey: "k8sCluster",
+    header: ({ table }) => {
+      const meta = table.options.meta as {
+        clusterFilter?: string;
+        setClusterFilter?: (v: string) => void;
+        uniqueClusters?: string[];
+      };
+      if (!meta?.setClusterFilter || !meta?.uniqueClusters) return "Cluster";
+      return (
+        <div className="flex flex-row items-center gap-2">
+          <span className="shrink-0">Cluster</span>
+          <Select value={meta.clusterFilter ?? "all"} onValueChange={meta.setClusterFilter}>
+            <SelectTrigger className="h-7 w-[120px]" size="sm">
+              <SelectValue placeholder="all" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="all">all</SelectItem>
+              {meta.uniqueClusters.map((cluster) => (
+                <SelectItem key={cluster} value={cluster}>
+                  {cluster}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    },
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      const cluster = row.original.k8sCluster ?? "";
+      if (filterValue === "(empty)") return !cluster;
+      return cluster === filterValue;
+    },
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.k8sCluster ?? "—"}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          Status
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
+    cell: ({ row }) => (
+      <Badge
+        variant="outline"
+        className={
+          row.original.status === "active"
+            ? "text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+            : "text-muted-foreground px-1.5"
+        }
+      >
+        {row.original.status === "active" ? (
+          <>
+            <IconCircleCheckFilled className="mr-1 size-3.5 fill-green-500 dark:fill-green-400" />
+            {row.original.status}
+          </>
+        ) : (
+          <>
+            <IconLoader className="mr-1 size-3.5" />
+            {row.original.status}
+          </>
+        )}
+      </Badge>
+    ),
+  },
 
   {
-    accessorKey: "cores",
-    header: "cores",
+    accessorKey: "os",
+    header: ({ table }) => {
+      const meta = table.options.meta as {
+        osFilter?: string;
+        setOsFilter?: (v: string) => void;
+        uniqueOses?: string[];
+      };
+      if (!meta?.setOsFilter || !meta?.uniqueOses) return "OS";
+      return (
+        <div className="flex flex-row items-center gap-2">
+          <span className="shrink-0">OS</span>
+          <Select value={meta.osFilter ?? "all"} onValueChange={meta.setOsFilter}>
+            <SelectTrigger className="h-7 w-[120px]" size="sm">
+              <SelectValue placeholder="all" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="all">all</SelectItem>
+              {meta.uniqueOses.map((os) => (
+                <SelectItem key={os} value={os}>
+                  {os}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    },
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      const os = row.original.os ?? "";
+      if (filterValue === "(empty)") return !os;
+      return os === filterValue;
+    },
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.os ?? "—"}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "kernel",
+    header: ({ table }) => {
+      const meta = table.options.meta as {
+        kernelFilter?: string;
+        setKernelFilter?: (v: string) => void;
+        uniqueKernels?: string[];
+      };
+      if (!meta?.setKernelFilter || !meta?.uniqueKernels) return "Kernel";
+      return (
+        <div className="flex flex-row items-center gap-2">
+          <span className="shrink-0">Kernel</span>
+          <Select value={meta.kernelFilter ?? "all"} onValueChange={meta.setKernelFilter}>
+            <SelectTrigger className="h-7 w-[120px]" size="sm">
+              <SelectValue placeholder="all" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="all">all</SelectItem>
+              {meta.uniqueKernels.map((kernel) => (
+                <SelectItem key={kernel} value={kernel}>
+                  {kernel}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    },
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      const kernel = row.original.kernel ?? "";
+      if (filterValue === "(empty)") return !kernel;
+      return kernel === filterValue;
+    },
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-muted-foreground px-1.5">
+        {row.original.kernel ?? "—"}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "cpuCore",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          Cpu
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
@@ -288,7 +472,26 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
 
   {
     accessorKey: "memory",
-    header: "memory",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          Memory
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
@@ -299,8 +502,27 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
 
   {
-    accessorKey: "disk",
-    header: "disk",
+    accessorKey: "diskVolume",
+    header: ({ column }) => {
+      const sorted = column.getIsSorted();
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting()}
+        >
+          Disk
+          {sorted === "asc" ? (
+            <IconArrowUp className="ml-1.5 size-3.5" />
+          ) : sorted === "desc" ? (
+            <IconArrowDown className="ml-1.5 size-3.5" />
+          ) : (
+            <IconSelector className="ml-1.5 size-3.5 opacity-50" />
+          )}
+        </Button>
+      );
+    },
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
@@ -311,7 +533,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "remarks",
-    header: "remarks",
+    header: "Remarks",
     cell: ({ row }) => (
       <div className="min-w-[12ch] max-w-[24ch] truncate" title={row.original.remarks ?? ""}>
         <Badge variant="outline" className="text-muted-foreground px-1.5 font-normal">
@@ -322,7 +544,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "tags",
-    header: "tags",
+    header: "Tags",
     cell: ({ row }) => (
       <div className="flex min-w-[10ch] max-w-[20ch] flex-wrap gap-1">
         {Array.isArray(row.original.tags) && row.original.tags.length > 0 ? (
@@ -340,17 +562,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     ),
   },
 
-  // {
-  //   accessorKey: "description",
-  //   header: "description",
-  //   cell: ({ row }) => (
-  //     <div className="min-w-[32ch]">
-  //       <Badge variant="outline" className="text-muted-foreground px-1.5 whitespace-normal break-words w-full">
-  //         {row.original.description} 
-  //       </Badge>
-  //     </div>
-  //   ),
-  // },
+
 
   //   {
   //   accessorKey: "cluster",
@@ -365,20 +577,6 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   // },
 
 
-  // {
-  //   accessorKey: "status",
-  //   header: "Status",
-  //   cell: ({ row }) => (
-  //     <Badge variant="outline" className="text-muted-foreground px-1.5">
-  //       {row.original.status === "Done" ? (
-  //         <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-  //       ) : (
-  //         <IconLoader />
-  //       )}
-  //       {row.original.status}
-  //     </Badge>
-  //   ),
-  // }
 
 
 ];
@@ -408,11 +606,17 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 
 export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[] }) {
   const [data, setData] = React.useState(() => initialData);
+  React.useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ sn: false });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [idcFilter, setIdcFilter] = React.useState<string>("all");
+  const [clusterFilter, setClusterFilter] = React.useState<string>("all");
+  const [osFilter, setOsFilter] = React.useState<string>("all");
+  const [kernelFilter, setKernelFilter] = React.useState<string>("all");
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 50,
@@ -433,13 +637,51 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
     );
   }, [data]);
 
+  const uniqueClusters = React.useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((row) => {
+      const v = row.k8sCluster?.trim() ?? "";
+      set.add(v || "(empty)");
+    });
+    return Array.from(set).sort((a, b) =>
+      a === "(empty)" ? 1 : b === "(empty)" ? -1 : a.localeCompare(b)
+    );
+  }, [data]);
+
+  const uniqueOses = React.useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((row) => {
+      const v = row.os?.trim() ?? "";
+      set.add(v || "(empty)");
+    });
+    return Array.from(set).sort((a, b) =>
+      a === "(empty)" ? 1 : b === "(empty)" ? -1 : a.localeCompare(b)
+    );
+  }, [data]);
+
+  const uniqueKernels = React.useMemo(() => {
+    const set = new Set<string>();
+    data.forEach((row) => {
+      const v = row.kernel?.trim() ?? "";
+      set.add(v || "(empty)");
+    });
+    return Array.from(set).sort((a, b) =>
+      a === "(empty)" ? 1 : b === "(empty)" ? -1 : a.localeCompare(b)
+    );
+  }, [data]);
+
   React.useEffect(() => {
     setColumnFilters((prev) => {
-      const rest = prev.filter((f) => f.id !== "idc");
-      if (idcFilter === "all") return rest;
-      return [...rest, { id: "idc", value: idcFilter }];
+      let rest = prev.filter(
+        (f) => f.id !== "idc" && f.id !== "k8sCluster" && f.id !== "os" && f.id !== "kernel"
+      );
+      if (idcFilter !== "all") rest = [...rest, { id: "idc", value: idcFilter }];
+      if (clusterFilter !== "all") rest = [...rest, { id: "k8sCluster", value: clusterFilter }];
+      if (osFilter !== "all") rest = [...rest, { id: "os", value: osFilter }];
+      if (kernelFilter !== "all") rest = [...rest, { id: "kernel", value: kernelFilter }];
+      return rest;
     });
-  }, [idcFilter]);
+  }, [idcFilter, clusterFilter, osFilter, kernelFilter]);
 
   const table = useReactTable({
     data,
@@ -451,7 +693,25 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
       columnFilters,
       pagination,
     },
-    meta: { idcFilter, setIdcFilter, uniqueIdcs },
+    meta: {
+      idcFilter,
+      setIdcFilter,
+      uniqueIdcs,
+      clusterFilter,
+      setClusterFilter,
+      uniqueClusters,
+      osFilter,
+      setOsFilter,
+      uniqueOses,
+      kernelFilter,
+      setKernelFilter,
+      uniqueKernels,
+      onRemarksSaved: (hostId: number, remarks: string) => {
+        setData((prev) =>
+          prev.map((r) => (r.id === hostId ? { ...r, remarks: remarks || undefined } : r))
+        );
+      },
+    },
     getRowId: (row) => row.id.toString(),
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
@@ -479,32 +739,8 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
   }
 
   return (
-    <Tabs defaultValue="outline" className="w-full flex-col justify-start gap-6">
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
-          View
-        </Label>
-        <Select defaultValue="outline">
-          <SelectTrigger className="flex w-fit @4xl/main:hidden" size="sm" id="view-selector">
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="outline">Outline</SelectItem>
-            <SelectItem value="past-performance">Past Performance</SelectItem>
-            <SelectItem value="key-personnel">Key Personnel</SelectItem>
-            <SelectItem value="focus-documents">Focus Documents</SelectItem>
-          </SelectContent>
-        </Select>
-        <TabsList className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
-          <TabsTrigger value="outline">Outline</TabsTrigger>
-          <TabsTrigger value="past-performance">
-            Past Performance <Badge variant="secondary">3</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="key-personnel">
-            Key Personnel <Badge variant="secondary">2</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="focus-documents">Focus Documents</TabsTrigger>
-        </TabsList>
+    <div className="flex w-full flex-col justify-start gap-6">
+      <div className="flex items-center justify-end px-4 lg:px-6">
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -539,7 +775,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
           </Button> */}
         </div>
       </div>
-      <TabsContent value="outline" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+      <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
@@ -656,175 +892,122 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
             </div>
           </div>
         </div>
-      </TabsContent>
-      <TabsContent value="past-performance" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-      <TabsContent value="key-personnel" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-      <TabsContent value="focus-documents" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-    </Tabs>
+      </div>
+    </div>
   );
 }
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-muted-foreground text-xs">{label}</Label>
+      <div className="text-sm">{value ?? "—"}</div>
+    </div>
+  );
+}
 
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
-  },
-} satisfies ChartConfig;
-
-function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
+function TableCellViewer({ item, onRemarksSaved }: { item: z.infer<typeof schema>; onRemarksSaved?: (hostId: number, remarks: string) => void }) {
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const [remarks, setRemarks] = React.useState(item.remarks ?? "");
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    setRemarks(item.remarks ?? "");
+  }, [item.id, item.remarks]);
+
+  async function handleSaveRemarks() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/hosts/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remarks }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      onRemarksSaved?.(item.id, remarks);
+      router.refresh();
+    } catch {
+      toast.error("Failed to save remarks");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
       <DrawerTrigger asChild>
         <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
+          {item.id}
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
-          <DrawerDescription>Showing total visitors for the last 6 months</DrawerDescription>
+          <DrawerTitle>Host {item.id}</DrawerTitle>
+          <DrawerDescription>
+            {item.ip}
+            {item.idc ? ` · ${item.idc}` : ""}
+          </DrawerDescription>
         </DrawerHeader>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
-              <ChartContainer config={chartConfig}>
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 10,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                    hide
-                  />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-              <Separator />
-              <div className="grid gap-2">
-                <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month <IconTrendingUp className="size-4" />
-                </div>
-                <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just some random text to test the layout. It
-                  spans multiple lines and should wrap around.
-                </div>
+        <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm">
+          <div className="grid grid-cols-2 gap-4">
+            <InfoRow label="Id" value={item.id} />
+            <InfoRow label="IP" value={item.ip} />
+            <InfoRow label="Public IP" value={item.publicIp || null} />
+            <InfoRow label="SN" value={item.sn || null} />
+            <InfoRow label="IDC" value={item.idc || null} />
+            <InfoRow label="Cluster" value={item.k8sCluster || null} />
+            <InfoRow label="Status" value={item.status} />
+            <InfoRow label="OS" value={item.os || null} />
+            <InfoRow label="Kernel" value={item.kernel || null} />
+            <InfoRow label="CPU Cores" value={item.cpuCore} />
+            <InfoRow label="Memory (GB)" value={item.memory} />
+            <InfoRow label="Storage (GB)" value={item.diskVolume} />
+            <InfoRow
+              label="Updated At"
+              value={item.updatedAt ? new Date(item.updatedAt).toLocaleString() : null}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label className="text-muted-foreground text-xs">Remarks</Label>
+            <Textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add remarks..."
+              className="min-h-24 resize-y"
+            />
+          </div>
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs">Tags</Label>
+              <div className="flex flex-wrap gap-1">
+                {item.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
-              <Separator />
-            </>
+            </div>
           )}
-          <form className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header ?? ""} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type ?? ""}>
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Table of Contents">Table of Contents</SelectItem>
-                    <SelectItem value="Executive Summary">Executive Summary</SelectItem>
-                    <SelectItem value="Technical Approach">Technical Approach</SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">Focus Documents</SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue={item.status ?? "Done"}>
-                  <SelectTrigger id="status" className="w-full">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Done">Done</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
-                  </SelectContent>
-                </Select>
+          {item.services && item.services.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs">Services</Label>
+              <div className="flex flex-wrap gap-1">
+                {item.services.map((svc) => (
+                  <Badge key={svc} variant="outline" className="text-xs">
+                    {svc}
+                  </Badge>
+                ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target ?? ""} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit ?? ""} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer ?? ""}>
-                <SelectTrigger id="reviewer" className="w-full">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">Jamik Tashpulatov</SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </form>
+          )}
         </div>
-        <DrawerFooter>
-          <Button>Submit</Button>
+        <DrawerFooter className="flex-row gap-2">
+          <Button onClick={handleSaveRemarks} disabled={saving}>
+            {saving ? "Saving..." : "Save Remarks"}
+          </Button>
           <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
+            <Button variant="outline">Close</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

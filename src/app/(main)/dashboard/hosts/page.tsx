@@ -1,24 +1,11 @@
-import { DataTable } from "./data-table";
-import { getHosts } from "@/lib/hosts-pg";
+import { Suspense } from "react";
 
-import { SectionCards } from "./section-cards";
+import { type HostRow, getBadHosts, getHosts } from "@/lib/hosts-pg";
+
+import { HostsContent } from "./hosts-content";
 
 export default async function Page() {
-  let data: {
-    id: number;
-    sn: string;
-    ip: string;
-    publicIp: string;
-    cpuCore: number;
-    memory: number;
-    diskVolume: number;
-    header: string;
-    status: string;
-    idc?: string;
-    remarks?: string;
-    tags?: string[];
-    services?: string[];
-  }[] = [];
+  let data: HostRow[] = [];
 
   try {
     data = await getHosts();
@@ -27,13 +14,8 @@ export default async function Page() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          <SectionCards />
-          <DataTable data={data} />
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center py-12">Loading...</div>}>
+      <HostsContent data={data} />
+    </Suspense>
   );
 }

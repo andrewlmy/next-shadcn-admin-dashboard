@@ -27,7 +27,11 @@ export interface HostRow {
   diskVolume: number;
   header: string;
   status: string;
+  updatedAt: Date | null;
   idc?: string;
+  k8sCluster?: string;
+  os?: string;
+  kernel?: string;
   remarks?: string;
   tags?: string[];
   services?: string[];
@@ -66,11 +70,16 @@ export async function getHosts(): Promise<HostRow[]> {
       idc: string | null;
       tags: unknown;
       remarks: string | null;
+      status: string | null;
+      k8s_cluster: string | null;
+      os: string | null;
+      kernel: string | null;
       created_at: Date;
-      updated_at: Date;
+      updated_at: Date | null;
     }>(
-      `SELECT id, ip, sn, isp_ip, cpu_cores, memory_gb, storage_gb, services, idc, tags, remarks, created_at, updated_at
+      `SELECT id, ip, sn, isp_ip, cpu_cores, memory_gb, storage_gb, services, idc, tags, remarks, status, k8s_cluster, os, kernel, created_at, updated_at
        FROM machine_info
+       WHERE deleted_at IS NULL
        ORDER BY id DESC`
     );
 
@@ -78,6 +87,8 @@ export async function getHosts(): Promise<HostRow[]> {
       const tags = parseStringArray(r.tags);
       const services = parseStringArray(r.services);
       const idc = r.idc ?? '';
+      const raw = r.k8s_cluster?.trim();
+      const k8sCluster = raw && raw.toUpperCase() !== "NULL" ? raw : undefined;
       return {
         id: r.id,
         sn: r.sn ?? '',
@@ -86,9 +97,13 @@ export async function getHosts(): Promise<HostRow[]> {
         cpuCore: r.cpu_cores ?? 0,
         memory: r.memory_gb ?? 0,
         diskVolume: Number(r.storage_gb) ?? 0,
-        header: idc ? `${r.ip} (${idc})` : r.ip,
-        status: 'Done',
+        header: r.ip,
+        status: r.status ?? 'active',
+        updatedAt: r.updated_at,
         idc: idc || undefined,
+        k8sCluster,
+        os: r.os ?? undefined,
+        kernel: r.kernel ?? undefined,
         remarks: r.remarks ?? undefined,
         tags: tags ?? undefined,
         services: services ?? undefined,
@@ -102,8 +117,35 @@ export async function getHosts(): Promise<HostRow[]> {
 export async function getHostsCount(): Promise<number> {
   const client = await pgPool.connect();
   try {
-    const result = await client.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM machine_info');
+    const result = await client.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM machine_info WHERE deleted_at IS NULL'
+    );
     return parseInt(result.rows[0]?.count ?? '0', 10);
+  } finally {
+    client.release();
+  }
+}
+
+/** Host is "bad" if updated_at is older than 15 minutes (node hasn't reported in 15+ min) */
+const STALE_MINUTES = 15;
+
+export function countBadHosts(hosts: HostRow[]): number {
+  const cutoff = new Date(Date.now() - STALE_MINUTES * 60 * 1000);
+  return hosts.filter((h) => !h.updatedAt || new Date(h.updatedAt) < cutoff).length;
+}
+
+export function getBadHosts(hosts: HostRow[]): HostRow[] {
+  const cutoff = new Date(Date.now() - STALE_MINUTES * 60 * 1000);
+  return hosts.filter((h) => !h.updatedAt || new Date(h.updatedAt) < cutoff);
+}
+
+export async function updateHostRemarks(hostId: number, remarks: string): Promise<void> {
+  const client = await pgPool.connect();
+  try {
+    await client.query(
+      'UPDATE machine_info SET remarks = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL',
+      [remarks, hostId]
+    );
   } finally {
     client.release();
   }
